@@ -42,7 +42,9 @@ function addDepartment() {
             }
         ])
         .then((response) => {
+            updateDepartmentList();
 
+            startApp();
         })
 };
 
@@ -66,7 +68,9 @@ function addRole() {
             }
         ])
         .then((response) => {
+            updateRolesList();
 
+            startApp();
         })
 };
 
@@ -97,7 +101,9 @@ function addEmployee() {
             }
         ])
         .then((response) => {
+            addNewEmployee();
 
+            startApp();
         })
 };
 
@@ -149,6 +155,42 @@ function startApp() {
                 updateEmployeeRole();
             }
         })
+};
+
+function updateDepartmentList(response) {
+    db.promise()
+        .query(`INSERT INTO department(department_name) VALUES ("${response}")`)
+        .then(() => {
+            viewDepartments();
+        })
+};
+
+function updateRolesList(response) {
+    db.promise()
+        .query(`INSERT INTO roles(title, salary, department_id) VALUES("${response.role_name}", "${response.role_salary}", "${response.department_role}")`)
+        .then(() => {
+            viewRoles();
+        })
+};
+
+function addNewEmployee(response) {
+    db.promise()
+        .query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${response.first_name}", "${response.last_name}", "${response.employee_role}", "${response.employee_manager}")`)
+        .then(() => {
+            viewEmployees();
+        })
+};
+
+function viewDepartments() {
+
+};
+
+function viewRoles() {
+
+};
+
+function viewEmployees() {
+
 };
 
 startApp();
