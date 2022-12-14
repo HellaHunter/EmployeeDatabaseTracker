@@ -2,6 +2,7 @@ const inquirer = require('inquirer');
 const express = require('express');
 const mysql = require('mysql2');
 const cTable = require('console.table');
+const process = require("process");
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3001;
@@ -107,7 +108,29 @@ function addEmployee() {
             }
         ])
         .then((response) => {
-            addNewEmployee();
+            let psuedoManagerID = null;
+            let psuedoEmployeeID = null;
+
+            db.promise()
+                .query(`SELECT id FROM employee_db.roles WHERE title = "${response.employee_role}"`)
+                .then(([rows]) => {
+                    psuedoEmployeeID = rows[0].id;
+                })
+
+            db.promise()
+                .query(`SELECT manager_id FROM employee_db.employee WHERE first_name = "${response.employee_manager.split(" ")[0]}" AND last_name = "${response.employee_manager.split(" ")[1]}";`)
+                .then(([rows, fields]) => {
+                    psuedoManagerID = rows[0].manager_id;
+                })
+
+            .then(() => {
+                addNewEmployee(
+                    response.first_name,
+                    response.last_name,
+                    psuedoManagerID,
+                    psuedoEmployeeID
+                );
+            });
 
             startApp();
         })
@@ -139,9 +162,9 @@ function startApp() {
         .prompt([
             {
                 type: 'list',
-                name: 'main_question',
                 message: prompts[0],
-                choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
+                choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'Exit'],
+                name: 'main_question',
             }
         ])
         .then((response) => {
@@ -157,8 +180,10 @@ function startApp() {
                 addRole();
             } else if(response.main_question === 'Add an employee') {
                 addEmployee();
-            } else {
+            } else if(response.main_question === 'Update an Employee Role') {
                 updateEmployeeRole();
+            } else {
+                process.exit();
             }
         })
 };
