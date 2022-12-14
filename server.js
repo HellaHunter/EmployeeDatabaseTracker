@@ -10,6 +10,8 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// Using mysql12 to connect to the database we are using
+
 const db = mysql.createConnection(
     {
         host: 'localhost',
@@ -19,6 +21,8 @@ const db = mysql.createConnection(
     },
     console.log("Connected to the employee_db database.")
 );
+
+// A list of questions that will be used with inquirer
 
 const prompts = [
     "Welcome! What Would you like to do?",
@@ -31,6 +35,8 @@ const prompts = [
     "What role is this employee filling?",
     "Who is the manager of this new employee?",
 ];
+
+// Inquirer question functions start here
 
 function addDepartment() {
     inquirer
@@ -124,7 +130,7 @@ function updateEmployeeRole() {
             }
         ])
         .then((response) => {
-
+            changeEmployeeRole();
         })
 };
 
@@ -140,11 +146,11 @@ function startApp() {
         ])
         .then((response) => {
             if(response.main_question === 'View all departments') {
-
+                viewDepartments();
             } else if(response.main_question === 'View all roles') {
-
+                viewRoles();
             } else if(response.main_question === 'View all employees') {
-
+                viewEmployees();
             } else if(response.main_question === 'Add a department') {
                 addDepartment();
             } else if(response.main_question === 'Add a role') {
@@ -156,6 +162,8 @@ function startApp() {
             }
         })
 };
+
+// Functions to handle responses start here
 
 function updateDepartmentList(response) {
     db.promise()
@@ -182,15 +190,38 @@ function addNewEmployee(response) {
 };
 
 function viewDepartments() {
-
+    db.promise()
+        .query("SELECT * FROM employee_db.department")
+        .then(([rows, fields]) => {
+            console.table(rows)
+        })
 };
 
 function viewRoles() {
-
+    db.promise()
+        .query("SELECT * FROM employee_db.roles")
+        .then(([rows, fields]) => {
+            console.table(rows)
+        })
 };
 
 function viewEmployees() {
-
+    db.promise()
+        .query("SELECT * FROM employee_db.employee")
+        .then(([rows, fields]) => {
+            console.table(rows)
+        })
 };
+
+function changeEmployeeRole(response) {
+    db.promise()
+        .query(`UPDATE employee 
+        SET role_id = ${updatedRoleID}
+        WHERE id = ${updatedEmployeeID}`
+        )
+        .then(() => {
+            viewEmployees();
+        })
+}
 
 startApp();
