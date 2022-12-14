@@ -163,8 +163,17 @@ function startApp() {
             {
                 type: 'list',
                 message: prompts[0],
-                choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'Exit'],
-                name: 'main_question',
+                choices: [
+                    'View all departments', 
+                    'View all roles', 
+                    'View all employees', 
+                    'Add a department', 
+                    'Add a role', 
+                    'Add an employee', 
+                    'Update an employee role', 
+                    'Exit'
+                ],
+                name: 'main_question'
             }
         ])
         .then((response) => {
@@ -218,7 +227,7 @@ function viewDepartments() {
     db.promise()
         .query("SELECT * FROM employee_db.department")
         .then(([rows, fields]) => {
-            console.table(rows)
+            cTable(rows)
         })
 };
 
@@ -226,7 +235,7 @@ function viewRoles() {
     db.promise()
         .query("SELECT * FROM employee_db.roles")
         .then(([rows, fields]) => {
-            console.table(rows)
+            cTable(rows)
         })
 };
 
@@ -234,7 +243,7 @@ function viewEmployees() {
     db.promise()
         .query("SELECT * FROM employee_db.employee")
         .then(([rows, fields]) => {
-            console.table(rows)
+            cTable(rows)
         })
 };
 
