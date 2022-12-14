@@ -1,22 +1,15 @@
 const inquirer = require('inquirer');
-const express = require('express');
 const mysql = require('mysql2');
 const cTable = require('console.table');
 const process = require("process");
 require('dotenv').config();
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
 
 // Using mysql12 to connect to the database we are using
 
 const db = mysql.createConnection(
     {
         host: 'localhost',
-        user: process.env.USERNAME,
+        user: 'root',
         password: process.env.PASSWORD,
         database: 'employee_db'
     },
@@ -49,8 +42,9 @@ function addDepartment() {
             }
         ])
         .then((response) => {
-            updateDepartmentList();
-
+            updateDepartmentList(response.department_name);
+        })
+        .then(() => {
             startApp();
         })
 };
@@ -75,9 +69,16 @@ function addRole() {
             }
         ])
         .then((response) => {
-            updateRolesList();
+            let psuedoRoleID = null;
 
-            startApp();
+            db.promise()
+                .query(`SELECT id FROM employee_db.department WHERE department_name = "${response.department_role}"`)
+                .then(([rows, fields]) => {
+                    psuedoRoleID = rows[0].id;
+
+                    updateRolesList(response.role_name, psuedoRoleID, response.role_salary);
+                })
+            
         })
 };
 
@@ -95,16 +96,14 @@ function addEmployee() {
                 message: prompts[6]
             },
             {
-                type: 'list',
+                type: 'input',
                 name: 'employee_role',
                 message: prompts[7],
-                choices: []
             },
             {
-                type: 'list',
+                type: 'input',
                 name: 'employee_manager',
                 message: prompts[8],
-                choices: []
             }
         ])
         .then((response) => {
@@ -130,9 +129,11 @@ function addEmployee() {
                     psuedoManagerID,
                     psuedoEmployeeID
                 );
-            });
-
-            startApp();
+            })
+            
+            .then(() => {
+                startApp();
+            })
         })
 };
 
@@ -153,9 +154,30 @@ function updateEmployeeRole() {
             }
         ])
         .then((response) => {
-            changeEmployeeRole();
-        })
-};
+            // Placeholder variables that get reassigned later
+            let psuedoUpdatedEmployeeId = null;
+            let psuedoUpdatedEmployeeRoleId = null;
+      
+            db.promise()
+              .query(
+                `SELECT id FROM employee_db.employee WHERE first_name = "${response.employee_choice.split(" ")[0]}" AND last_name = "${answer.updateEmployeeName.split(" ")[1]}";`
+              )
+              .then((rows) => {
+                temporaryUpdateEmployeeId = rows[0][0].id;
+              })
+      
+            db.promise()
+              .query(`SELECT id FROM role WHERE title = "${response.update_role}";`)
+              .then(([rows, fields]) => {
+                temporaryUpdateEmployeeRoleId = rows[0].id;
+              })
+              .then(() => {
+                changeEmployeeRole(
+                  psuedoUpdatedEmployeeId,
+                  psuedoUpdatedEmployeeRoleId
+                );
+              })
+});
 
 function startApp() {
     inquirer
@@ -173,8 +195,8 @@ function startApp() {
                     'Update an employee role', 
                     'Exit'
                 ],
-                name: 'main_question'
-            }
+                name: 'main_question',
+            },
         ])
         .then((response) => {
             if(response.main_question === 'View all departments') {
@@ -207,17 +229,20 @@ function updateDepartmentList(response) {
         })
 };
 
-function updateRolesList(response) {
+function updateRolesList(role_name, department_role, role_salary) {
     db.promise()
-        .query(`INSERT INTO roles(title, salary, department_id) VALUES("${response.role_name}", "${response.role_salary}", "${response.department_role}")`)
+        .query(`INSERT INTO roles(title, department_id, salary) VALUES("${role_name}", "${department_role}", "${role_salary}")`)
         .then(() => {
             viewRoles();
         })
+        .then(() => {
+            startApp();
+        })
 };
 
-function addNewEmployee(response) {
+function addNewEmployee(first_name, last_name, employee_role, employee_manager) {
     db.promise()
-        .query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${response.first_name}", "${response.last_name}", "${response.employee_role}", "${response.employee_manager}")`)
+        .query(`INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES ("${first_name}", "${last_name}", "${employee_role}", "${employee_manager}")`)
         .then(() => {
             viewEmployees();
         })
@@ -227,7 +252,10 @@ function viewDepartments() {
     db.promise()
         .query("SELECT * FROM employee_db.department")
         .then(([rows, fields]) => {
-            cTable(rows)
+            console.table(rows)
+        })
+        .then(() => {
+            startApp();
         })
 };
 
@@ -235,7 +263,10 @@ function viewRoles() {
     db.promise()
         .query("SELECT * FROM employee_db.roles")
         .then(([rows, fields]) => {
-            cTable(rows)
+            console.table(rows)
+        })
+        .then(() => {
+            startApp();
         })
 };
 
@@ -243,11 +274,14 @@ function viewEmployees() {
     db.promise()
         .query("SELECT * FROM employee_db.employee")
         .then(([rows, fields]) => {
-            cTable(rows)
+            console.table(rows)
+        })
+        .then(() => {
+            startApp();
         })
 };
 
-function changeEmployeeRole(response) {
+function changeEmployeeRole(updatedRoleID, updatedEmployeeID) {
     db.promise()
         .query(`UPDATE employee 
         SET role_id = ${updatedRoleID}
